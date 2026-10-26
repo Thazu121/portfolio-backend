@@ -40,5 +40,18 @@ ${message}`,
   console.log('Contact notification sent:', data.id)
   return data
 }
+console.log('Email environment check:', {
+  RESEND_API_KEY: Boolean(process.env.RESEND_API_KEY),
+  EMAIL_TO: Boolean(process.env.EMAIL_TO),
+  EMAIL_FROM: Boolean(process.env.EMAIL_FROM),
+})
+
+if (
+  !process.env.RESEND_API_KEY ||
+  !process.env.EMAIL_TO ||
+  !process.env.EMAIL_FROM
+) {
+  throw new Error('Email environment variables are missing.')
+}
 
 export { sendContactNotification }
