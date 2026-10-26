@@ -1,5 +1,5 @@
 
-import Contact from '../models/Contact.js'
+import Contact from '../models/Contacts.js'
 import { sendContactNotification } from '../utils/sendEmail.js'
 
 const isValidEmail = (email) =>
