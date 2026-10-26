@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import { Resend } from 'resend'
 
 const sendContactNotification = async ({
   name,
@@ -6,44 +6,19 @@ const sendContactNotification = async ({
   subject,
   message,
 }) => {
-  // Read email configuration from backend .env
-  const {
-    EMAIL_HOST,
-    EMAIL_PORT,
-    EMAIL_USER,
-    EMAIL_APP_PASSWORD,
-    EMAIL_TO,
-    EMAIL_FROM,
-  } = process.env
+  const { RESEND_API_KEY, EMAIL_TO, EMAIL_FROM } = process.env
 
-  // Validate required environment variables
-  if (
-    !EMAIL_HOST ||
-    !EMAIL_USER ||
-    !EMAIL_APP_PASSWORD ||
-    !EMAIL_TO ||
-    !EMAIL_FROM
-  ) {
+  if (!RESEND_API_KEY || !EMAIL_TO || !EMAIL_FROM) {
     throw new Error(
-      'Missing email configuration. Check your backend .env file.'
+      'Missing RESEND_API_KEY, EMAIL_TO, or EMAIL_FROM.'
     )
   }
 
-  // Create Nodemailer transporter
-  const transporter = nodemailer.createTransport({
-    host: EMAIL_HOST,
-    port: Number(EMAIL_PORT || 465),
-    secure: Number(EMAIL_PORT || 465) === 465,
-    auth: {
-      user: EMAIL_USER.trim(),
-      pass: EMAIL_APP_PASSWORD.trim(),
-    },
-  })
+  const resend = new Resend(RESEND_API_KEY)
 
-  // Send notification email
-  const result = await transporter.sendMail({
+  const { data, error } = await resend.emails.send({
     from: EMAIL_FROM,
-    to: EMAIL_TO,
+    to: [EMAIL_TO],
     replyTo: email,
     subject:
       subject?.trim() || `New portfolio message from ${name}`,
@@ -54,15 +29,16 @@ Email: ${email}
 Subject: ${subject || 'Portfolio contact message'}
 
 Message:
-${message}
-
----
-Reply directly to this email to respond to ${name}.`,
+${message}`,
   })
 
-  console.log('Contact notification sent:', result.messageId)
+  if (error) {
+    console.error('Resend email error:', error)
+    throw new Error(error.message || 'Email notification failed.')
+  }
 
-  return result
+  console.log('Contact notification sent:', data.id)
+  return data
 }
 
 export { sendContactNotification }
