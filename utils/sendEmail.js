@@ -1,48 +1,68 @@
-
 import nodemailer from 'nodemailer'
 
-const emailUser = process.env.EMAIL_USER
-const emailPassword = process.env.EMAIL_APP_PASSWORD
-
-const transporter =
-  emailUser && emailPassword
-    ? nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-          user: emailUser,
-          pass: emailPassword,
-        },
-      })
-    : null
-
-export const sendContactNotification = async ({
+const sendContactNotification = async ({
   name,
   email,
   subject,
   message,
 }) => {
-  if (!transporter) {
+  // Read email configuration from backend .env
+  const {
+    EMAIL_HOST,
+    EMAIL_PORT,
+    EMAIL_USER,
+    EMAIL_APP_PASSWORD,
+    EMAIL_TO,
+    EMAIL_FROM,
+  } = process.env
+
+  // Validate required environment variables
+  if (
+    !EMAIL_HOST ||
+    !EMAIL_USER ||
+    !EMAIL_APP_PASSWORD ||
+    !EMAIL_TO ||
+    !EMAIL_FROM
+  ) {
     throw new Error(
-      'Email is not configured. Check EMAIL_USER and EMAIL_APP_PASSWORD in .env.'
+      'Missing email configuration. Check your backend .env file.'
     )
   }
 
-  const recipient = process.env.EMAIL_TO || emailUser
-
-  return transporter.sendMail({
-    from: `"Portfolio Contact Form" <${emailUser}>`,
-    to: recipient,
-    replyTo: email,
-    subject: `Portfolio contact: ${subject?.trim() || `Message from ${name}`}`,
-    text: [
-      'You received a new message from your portfolio contact form.',
-      '',
-      `Name: ${name}`,
-      `Email: ${email}`,
-      `Subject: ${subject?.trim() || '(not provided)'}`,
-      '',
-      'Message:',
-      message,
-    ].join('\n'),
+  // Create Nodemailer transporter
+  const transporter = nodemailer.createTransport({
+    host: EMAIL_HOST,
+    port: Number(EMAIL_PORT || 465),
+    secure: Number(EMAIL_PORT || 465) === 465,
+    auth: {
+      user: EMAIL_USER.trim(),
+      pass: EMAIL_APP_PASSWORD.trim(),
+    },
   })
+
+  // Send notification email
+  const result = await transporter.sendMail({
+    from: EMAIL_FROM,
+    to: EMAIL_TO,
+    replyTo: email,
+    subject:
+      subject?.trim() || `New portfolio message from ${name}`,
+    text: `You received a new message from your portfolio contact form.
+
+Name: ${name}
+Email: ${email}
+Subject: ${subject || 'Portfolio contact message'}
+
+Message:
+${message}
+
+---
+Reply directly to this email to respond to ${name}.`,
+  })
+
+  console.log('Contact notification sent:', result.messageId)
+
+  return result
 }
+
+export { sendContactNotification }

@@ -1,4 +1,3 @@
-
 import Contact from '../models/Contacts.js'
 import { sendContactNotification } from '../utils/sendEmail.js'
 
@@ -21,9 +20,7 @@ export const createContact = async (req, res) => {
         : ''
 
     const message =
-      typeof req.body.message === 'string'
-        ? req.body.message.trim()
-        : ''
+      typeof req.body.message === 'string' ? req.body.message.trim() : ''
 
     if (!name || !email || !message) {
       return res.status(400).json({
@@ -32,7 +29,12 @@ export const createContact = async (req, res) => {
       })
     }
 
-    if (name.length > 100 || email.length > 254 || message.length > 5000) {
+    if (
+      name.length > 100 ||
+      email.length > 254 ||
+      subject.length > 200 ||
+      message.length > 5000
+    ) {
       return res.status(400).json({
         success: false,
         message: 'One or more fields exceed the allowed length.',
@@ -46,7 +48,7 @@ export const createContact = async (req, res) => {
       })
     }
 
-    // Save the contact first so email failure does not lose the message.
+    // Save the contact before attempting to send the notification.
     const contact = await Contact.create({
       name,
       email,
@@ -67,7 +69,10 @@ export const createContact = async (req, res) => {
       emailSent = true
       console.log(`Contact notification sent for ${contact._id}`)
     } catch (emailError) {
-      console.error('Contact notification email failed:', emailError.message)
+      console.error(
+        'Contact notification email failed:',
+        emailError.message
+      )
     }
 
     return res.status(201).json({
