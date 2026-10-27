@@ -10,8 +10,10 @@ import {
   notFound,
   errorHandler,
 } from './middleware/errorMiddleware.js'
+import helmet from 'helmet'
 
 const app = express()
+app.use(helmet())
 
 app.set('trust proxy', 1)
 
